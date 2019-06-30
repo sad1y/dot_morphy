@@ -61,39 +61,17 @@ namespace Dawg
 
         public static async Task<Dictionary> Create(Stream stream, int size = 1024 * 1024)
         {
-            if (size < 1024 * 1024) throw new ArgumentOutOfRangeException(nameof(size));
-            
-            var buffer = new byte[4096];
-            var offset = 0;
             var memOffset = 0;
-
-            var mem = MemoryPool<uint>.Shared.Rent(size); 
+            var units = await stream.ReadAsAsync<uint>((buffer, count, mem) =>
             {
-                int count;
-                while ((count = await stream.ReadAsync(buffer, offset, buffer.Length)) > 0)
+                for (var i = 0; i < count; i += 4)
                 {
-                    // need to increase rented mem?
-                    if (mem.Memory.Length < offset + count)
-                    {
-                        var newMem = MemoryPool<uint>.Shared.Rent(mem.Memory.Length + size);
-                        mem.Memory.TryCopyTo(newMem.Memory);
-                        mem.Dispose();
-                        mem = newMem;
-                    }
-                    
-                    for (var i = 0; i < buffer.Length; i += 4)
-                    {
-                        var val = BitConverter.ToUInt32(buffer, i);
-                        mem.Memory.Span[memOffset++] = val;
-                    }
-
-                    offset += count;
+                    var val = BitConverter.ToUInt32(buffer, i);
+                    mem.Span[memOffset++] = val;
                 }
-
-                var units = mem.Memory.ToArray();
-                
-                return new Dictionary(units);
-            }
+            });
+            
+            return new Dictionary(units);
         }
     }
 }
