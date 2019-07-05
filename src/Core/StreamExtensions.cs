@@ -17,7 +17,6 @@ namespace Dawg
 
             var buffer = new byte[4096];
             var offset = 0;
-            var memOffset = 0;
 
             var mem = MemoryPool<T>.Shared.Rent(size);
 

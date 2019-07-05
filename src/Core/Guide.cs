@@ -5,7 +5,7 @@ namespace Dawg
 {
     public struct GuideEntry
     {
-        public byte Root;
+        public byte Child;
         public byte Sibling;
     }
     
@@ -27,7 +27,7 @@ namespace Dawg
             {
                 for (var i = 0; i < count; i += 2)
                 {
-                    mem.Span[memOffset++] = new GuideEntry { Root = buffer[i], Sibling = buffer[i+1]};
+                    mem.Span[memOffset++] = new GuideEntry { Child = buffer[i], Sibling = buffer[i+1]};
                 }
             });
             

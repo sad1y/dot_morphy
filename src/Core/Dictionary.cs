@@ -9,7 +9,7 @@ namespace Dawg
     public class Dictionary
     {
         private readonly uint[] _units;
-        private const uint Root = 0;
+        public const uint Root = 0;
 
         // do not expose ctor because the only way for now is read a data from serialized stream
         private Dictionary(uint[] units) => _units = units;
