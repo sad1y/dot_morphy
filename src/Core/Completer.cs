@@ -9,8 +9,8 @@ namespace Dawg
     {
         private readonly Dictionary _dict;
         private readonly Guide _guide;
-        private readonly Queue<byte> _key;
-        private readonly Queue<uint> _indexStack;
+        private readonly List<byte> _key;
+        private readonly List<uint> _indexStack;
         private uint _lastIndex;
 
         public Completer(Dictionary dict, Guide guide, uint index, IEnumerable<byte> prefix)
@@ -22,16 +22,15 @@ namespace Dawg
             _guide = guide;
 
             _lastIndex = Dictionary.Root;
-            _indexStack = new Queue<uint>(16);
-            _indexStack.Enqueue(index);
-            _key = new Queue<byte>(prefix);
+            _indexStack = new List<uint>(16) {index};
+            _key = new List<byte>(prefix);
         }
 
         public uint Value() => _dict.Value(_lastIndex);
 
         public string NextKey()
         {
-            var lastIndex = _indexStack.Last();
+            var lastIndex = _indexStack[_indexStack.Count - 1];
 
             if (_lastIndex == Dictionary.Root)
                 return FindTerminal(lastIndex);
@@ -50,12 +49,13 @@ namespace Dawg
                 while (sibling == 0)
                 {
                     sibling = _guide.Units[lastIndex].Sibling;
-                    _key.Dequeue();
+                    _key.RemoveLast();
 
                     if (_indexStack.Count == 0)
                         return null;
-
-                    lastIndex = _indexStack.Dequeue();
+                    
+                    _indexStack.RemoveLast();
+                    lastIndex = _indexStack[_indexStack.Count - 1];
                 }
 
                 var next = Follow(sibling, lastIndex);
@@ -87,8 +87,8 @@ namespace Dawg
             var nextIndex = _dict.FollowChar(label, index);
             if (!nextIndex.HasValue) return null;
 
-            _key.Enqueue(label);
-            _indexStack.Enqueue(nextIndex.Value);
+            _key.Add(label);
+            _indexStack.Add(nextIndex.Value);
 
             return nextIndex;
         }

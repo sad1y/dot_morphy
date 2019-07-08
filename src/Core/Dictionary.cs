@@ -1,8 +1,6 @@
 using System;
-using System.Buffers;
 using System.IO;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Dawg
 {
@@ -46,6 +44,20 @@ namespace Dawg
 
             return current;
         }
+        
+        public unsafe uint? FollowBytes(char key, uint index)
+        {
+            uint? current = index;
+
+            var buffer = stackalloc byte[4];
+
+            var size = Encoding.UTF8.GetBytes(&key, 1, buffer, 4);
+
+            for (var i = 0; i < size; i++) 
+                current = FollowChar(buffer[i], index);
+
+            return current;
+        }
 
         public bool Contains(string key)
         {
@@ -59,10 +71,10 @@ namespace Dawg
             return index.HasValue ? TryValue(index.Value) : null;
         }
 
-        public static async Task<Dictionary> Create(Stream stream, int size = 1024 * 1024)
+        public static Dictionary Create(Stream stream, int size = 1024 * 1024)
         {
             var memOffset = 0;
-            var units = await stream.ReadAsAsync<uint>((buffer, count, mem) =>
+            var units = stream.ReadAs<uint>((buffer, count, mem) =>
             {
                 for (var i = 0; i < count; i += 4)
                 {

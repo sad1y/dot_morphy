@@ -1,5 +1,4 @@
 using System.IO;
-using System.Threading.Tasks;
 
 namespace Dawg
 {
@@ -20,10 +19,10 @@ namespace Dawg
             Units = entries;
         }
 
-        public static async Task<Guide> Create(Stream stream)
+        public static Guide Create(Stream stream)
         {
             var memOffset = 0;
-            var units = await stream.ReadAsAsync<GuideEntry>((buffer, count, mem) =>
+            var units = stream.ReadAs<GuideEntry>((buffer, count, mem) =>
             {
                 for (var i = 0; i < count; i += 2)
                 {

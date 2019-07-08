@@ -1,13 +1,12 @@
 using System;
 using System.Buffers;
 using System.IO;
-using System.Threading.Tasks;
 
 namespace Dawg
 {
     public static class StreamExtensions
     {
-        public static async Task<T[]> ReadAsAsync<T>(this Stream stream,
+        public static T[] ReadAs<T>(this Stream stream,
             Action<byte[], int, Memory<T>> serializeCallback,
             int size = 1024 * 1024)
         {
@@ -21,7 +20,7 @@ namespace Dawg
             var mem = MemoryPool<T>.Shared.Rent(size);
 
             int count;
-            while ((count = await stream.ReadAsync(buffer, offset, buffer.Length)) > 0)
+            while ((count = stream.Read(buffer, offset, buffer.Length)) > 0)
             {
                 // need to increase rented mem?
                 if (mem.Memory.Length < offset + count)
