@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace Dawg
 {
@@ -14,7 +16,7 @@ namespace Dawg
             if (stream == null) throw new ArgumentNullException(nameof(stream));
 
             return new CompletionGraph<TValue>(
-                Dictionary.Create(stream),
+                Graph.FromStream(stream),
                 Guide.Create(stream)
             );
         }
@@ -29,15 +31,13 @@ namespace Dawg
         {
         }
         
-        private IEnumerable<SimilarItem<TValue>> SimilarItems(string prefix, string key, uint index, Dictionary<char, char> replaces)
+        private unsafe void SimilarItems(List<SimilarItem<TValue>> result, string prefix, string key, uint index, Dictionary<char, char> replaces)
         {
             var start = prefix.Length;
             var subkey = prefix.AsSpan().Slice(start);
 
-            var wordPostion = start;
+            var wordPosition = start;
             
-            //         for b_step in subkey.split("").filter(|v| !v.is_empty()) {
-
             for (var i = 0; i < subkey.Length; i++)
             {
                 if (subkey[i] == '') continue;
@@ -58,12 +58,61 @@ namespace Dawg
                         self.similar_items_(result, &prefix, key, next_index, replace_chars);
                     };
                 }
-*/
-                    var nextIndex = _graph.FollowBytes(replace, index);
+                */
                     
-                    
+                    // perf: inline
+                    var next = _graph.FollowBytes(replace, index);
+
+                    if (next.HasValue)
+                    {
+                        // perf: ValueStringBuilder
+                        var newPrefix = CreatePrefixWithReplace(replace);
+
+                        SimilarItems(result, newPrefix, key, index, replaces);
+                    }
                 }
+
+                var nextIndex = _graph.FollowBytes(subkey[i], index);
+                
+                if(!nextIndex.HasValue) 
+                    return;
+
+                index = nextIndex.Value;
+
+                wordPosition ++;
             }
+
+            var prefixPosition = _graph.FollowBytes('\x01', index);
+
+            if (prefixPosition.HasValue)
+            {
+                var subkeyRef = subkey.GetPinnableReference();
+                
+                var foundedKey = string.Create(prefix.Length + subkey.Length, (prefix, subkeyRef), (span, state) =>
+                {
+                    state.prefix.AsSpan().CopyTo(span);
+                    state.subkeyRef
+                });
+                
+                // var foundedKey = prefix + subkey;
+            }
+
+            unsafe string CreatePrefixWithReplace(char replace)
+            {
+                var keySliceSize = wordPosition - start;
+                var newPrefix = new string('\0', prefix.Length + keySliceSize + 1);
+                            
+                fixed (char* prefixPtr = prefix)
+                fixed (char* newPrefixPtr = newPrefix)
+                fixed (char* keyPtr = key)
+                {
+                    Unsafe.CopyBlock(newPrefixPtr, prefixPtr, (uint)prefix.Length * sizeof(char));
+                    Unsafe.CopyBlock(newPrefixPtr + prefix.Length, keyPtr + start, (uint)keySliceSize);
+                    newPrefixPtr[prefix.Length + keySliceSize + 1] = replace;
+                }
+
+                return newPrefix;
+            } 
         }
     }
 
