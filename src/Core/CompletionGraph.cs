@@ -2,11 +2,12 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Dawg
 {
-    public class CompletionGraph<TValue> where TValue : struct
+    internal abstract class CompletionGraph<TValue> where TValue : struct
     {
         private readonly Graph _graph;
         private readonly Guide _guide;
@@ -45,21 +46,6 @@ namespace Dawg
 
                 if (replaces.TryGetValue(subkey[i], out var replace))
                 {
-                    
-                    /* 
-                    if let Some(next_index) = self.dawg.dict.follow_bytes(replace_char, index) {
-                        log::trace!(r#" next_index: {}"#, next_index);
-                        let prefix = format!(
-                            "{}{}{}",
-                            current_prefix,
-                            &key[start_pos..word_pos],
-                            replace_char
-                        );
-                        self.similar_items_(result, &prefix, key, next_index, replace_chars);
-                    };
-                }
-                */
-                    
                     // perf: inline
                     var next = _graph.FollowBytes(replace, index);
 
@@ -87,14 +73,19 @@ namespace Dawg
             if (prefixPosition.HasValue)
             {
                 var subkeyRef = subkey.GetPinnableReference();
-                
-                var foundedKey = string.Create(prefix.Length + subkey.Length, (prefix, subkeyRef), (span, state) =>
+
+                var foundedKey = string.Create(prefix.Length + subkey.Length, (prefix, subkeyRef, subkey.Length), (span, state) =>
                 {
                     state.prefix.AsSpan().CopyTo(span);
-                    state.subkeyRef
+                    var subkeySpan = MemoryMarshal.CreateSpan(ref state.subkeyRef, state.Length);
+                    subkeySpan .CopyTo(span);
                 });
                 
+                // foundedKey
                 // var foundedKey = prefix + subkey;
+
+                var val = ValueForIndex(prefixPosition.Value);
+                result.Insert(0, new SimilarItem<TValue> { Str =  foundedKey, });
             }
 
             unsafe string CreatePrefixWithReplace(char replace)
@@ -114,6 +105,26 @@ namespace Dawg
                 return newPrefix;
             } 
         }
+        
+        private List<TValue> ValueForIndex(uint index)
+        {
+            var result = new List<TValue>();
+            var completer = new Completer(_graph.Dictionary, _guide, index, Array.Empty<byte>());
+
+            var key = completer.NextKey();
+            while (key != null)
+            {
+                key = completer.NextKey();
+                var value = FromBytes(key);
+                
+                result.Add(value);
+            }
+
+            return result;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected abstract TValue FromBytes(string key);
     }
 
     public class SimilarItem<TValue>

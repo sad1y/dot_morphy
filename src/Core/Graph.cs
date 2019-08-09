@@ -8,7 +8,7 @@ namespace Dawg
 {
     public class Graph
     {
-        private readonly Dictionary _dict;
+        public Dictionary Dictionary { get; }
 
         public static Graph FromStream(Stream stream)
         {
@@ -19,7 +19,7 @@ namespace Dawg
 
         public Graph(Dictionary dict)
         {
-            _dict = dict ?? throw new ArgumentNullException(nameof(dict));
+            Dictionary = dict ?? throw new ArgumentNullException(nameof(dict));
         }
 
         
@@ -29,14 +29,14 @@ namespace Dawg
 
             for (var i = 0; i < text.Length; i++)
             {
-                var next = _dict.FollowChar(text[i], index);
+                var next = Dictionary.FollowChar(text[i], index);
                 
                 if(!next.HasValue) 
                     yield break;
 
                 index = next.Value;
 
-                if (_dict.HasValue(index))
+                if (Dictionary.HasValue(index))
                     yield return Encoding.UTF8.GetString(text, 0, i);
             }
         }
@@ -44,7 +44,7 @@ namespace Dawg
         public IEnumerable<string> SortedPrefix(byte[] text) => Prefixes(text).OrderBy(f => f.Length);
 
 
-        public uint? FollowBytes(char ch, uint index) => _dict.FollowBytes(ch, index);
+        public uint? FollowBytes(char ch, uint index) => Dictionary.FollowBytes(ch, index);
 
     }
 }
