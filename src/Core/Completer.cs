@@ -28,7 +28,7 @@ namespace Dawg
 
         public uint Value() => _dict.Value(_lastIndex);
 
-        public string NextKey()
+        public byte[] NextKey()
         {
             var lastIndex = _indexStack[_indexStack.Count - 1];
 
@@ -66,7 +66,7 @@ namespace Dawg
             return FindTerminal(lastIndex);
         }
 
-        private string FindTerminal(uint index)
+        private byte[] FindTerminal(uint index)
         {
             while (!_dict.HasValue(index))
             {
@@ -79,7 +79,7 @@ namespace Dawg
             }
 
             _lastIndex = index;
-            return Encoding.UTF8.GetString(_key.ToArray());
+            return _key.ToArray();
         }
 
         private uint? Follow(byte label, uint index)
